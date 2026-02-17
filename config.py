@@ -2,7 +2,7 @@
 Configuration settings for Japanese Subtitle Generator
 """
 
-import platform
+import sys
 
 # Model Configuration
 MODEL_NAME = "tiny"  # Smallest model for speed and stability
@@ -15,7 +15,7 @@ INITIAL_PROMPT = "こんにちは。本日は日本の映画を視聴してい�
 
 # Performance Settings
 # Enable VAD by default, but disable on macOS to prevent potential segfaults
-VAD_FILTER = platform.system() != "Darwin"
+VAD_FILTER = sys.platform != "darwin"
 VAD_PARAMETERS = {
     "threshold": 0.5,
     "min_speech_duration_ms": 250,
