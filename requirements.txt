@@ -1,0 +1,17 @@
+# Core transcription engine - using stable version
+faster-whisper==1.0.3
+ctranslate2==4.2.1
+
+# PyTorch with CUDA support (will fallback to CPU version if CUDA unavailable)
+torch>=2.0.0
+torchaudio>=2.0.0
+
+# Audio processing
+ffmpeg-python>=0.2.0
+
+# GUI framework
+customtkinter>=5.2.0
+
+# Utilities
+pillow>=10.0.0
+packaging
