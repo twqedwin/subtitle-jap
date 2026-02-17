@@ -88,14 +88,15 @@ class JapaneseTranscriber:
             print(f"Duration: {duration:.2f} seconds")
             
             # Transcribe with optimized parameters
-            # Disable VAD to prevent segfaults
+            # Enable VAD for performance (config.VAD_FILTER handles platform safety)
             segments_generator, info = self.model.transcribe(
                 audio_path,
                 language=config.LANGUAGE,
                 beam_size=config.BEAM_SIZE,
                 temperature=config.TEMPERATURE,
                 initial_prompt=config.INITIAL_PROMPT,
-                vad_filter=False,  # Disable VAD for stability
+                vad_filter=config.VAD_FILTER,
+                vad_parameters=config.VAD_PARAMETERS if config.VAD_FILTER else None,
                 word_timestamps=False,
             )
             
