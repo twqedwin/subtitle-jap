@@ -54,6 +54,19 @@ class ProgressPanel(ctk.CTkFrame):
             text_color=("gray40", "gray60")
         )
         self.eta_label.pack(pady=(5, 10))
+
+        # Open folder button (initially hidden)
+        self.open_btn = ctk.CTkButton(
+            self,
+            text="📂 Open Output Folder",
+            width=200,
+            height=35,
+            corner_radius=10,
+            font=("SF Pro", 14),
+            fg_color=("gray70", "gray30"),
+            hover_color=("gray60", "gray40"),
+            command=None
+        )
     
     def update_progress(self, progress: float, status: str = "") -> None:
         """
@@ -92,6 +105,22 @@ class ProgressPanel(ctk.CTkFrame):
         
         self.last_progress = progress
         self.update_idletasks()
+
+    def show_open_button(self, command: Callable[[], None]) -> None:
+        """
+        Show the 'Open Output Folder' button.
+
+        Args:
+            command: Function to call when button is clicked
+        """
+        self.open_btn.configure(command=command)
+        self.open_btn.pack(pady=(10, 20))
+
+    def hide_open_button(self) -> None:
+        """
+        Hide the 'Open Output Folder' button.
+        """
+        self.open_btn.pack_forget()
     
     def reset(self) -> None:
         """
@@ -103,6 +132,7 @@ class ProgressPanel(ctk.CTkFrame):
         self.percentage_label.configure(text="0%")
         self.status_label.configure(text="Ready to process")
         self.eta_label.configure(text="")
+        self.hide_open_button()
     
     def complete(self, success: bool = True, message: str = "") -> None:
         """

@@ -7,6 +7,9 @@ from tkinter import messagebox
 import threading
 from pathlib import Path
 from typing import Optional
+import sys
+import subprocess
+import os
 
 import config
 from .components import ProgressPanel, DropZone
@@ -122,6 +125,27 @@ class SubtitleGeneratorApp(ctk.CTk):
         )
         device_label.pack(pady=(10, 20))
     
+    def _open_file_location(self, file_path: str) -> None:
+        """
+        Open file location in file explorer.
+
+        Args:
+            file_path: Path to the file
+        """
+        if not os.path.exists(file_path):
+            return
+
+        try:
+            if sys.platform == "win32":
+                subprocess.run(["explorer", "/select,", os.path.normpath(file_path)])
+            elif sys.platform == "darwin":
+                subprocess.run(["open", "-R", file_path])
+            else:
+                # Linux - open folder
+                subprocess.run(["xdg-open", os.path.dirname(file_path)])
+        except Exception as e:
+            print(f"Error opening file location: {e}")
+
     def _on_file_selected(self, file_path: str) -> None:
         """
         Callback when file is selected.
@@ -176,6 +200,11 @@ class SubtitleGeneratorApp(ctk.CTk):
             # Complete
             self._update_progress(1.0, f"✓ Subtitles saved to: {Path(output_path).name}")
             
+            # Show open button
+            self.after(0, lambda: self.progress_panel.show_open_button(
+                lambda: self._open_file_location(output_path)
+            ))
+
             # Show success message
             self.after(0, lambda: messagebox.showinfo(
                 "Success",
