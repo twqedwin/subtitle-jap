@@ -5,6 +5,10 @@ Custom UI components for the subtitle generator
 import customtkinter as ctk
 from typing import Callable, Optional
 import time
+import sys
+import subprocess
+import os
+from pathlib import Path
 
 
 class ProgressPanel(ctk.CTkFrame):
@@ -54,7 +58,37 @@ class ProgressPanel(ctk.CTkFrame):
             text_color=("gray40", "gray60")
         )
         self.eta_label.pack(pady=(5, 10))
+
+        # Open folder button (hidden initially)
+        self.output_path = None
+        self.open_btn = ctk.CTkButton(
+            self,
+            text="Open Output Folder",
+            command=self._open_output_folder,
+            width=160,
+            height=32,
+            font=("SF Pro", 13),
+            fg_color=("gray70", "gray30"),
+            hover_color=("gray60", "gray40")
+        )
     
+    def _open_output_folder(self) -> None:
+        """Open the folder containing the output file."""
+        if not self.output_path:
+            return
+
+        folder_path = str(Path(self.output_path).parent)
+
+        try:
+            if sys.platform == 'win32':
+                os.startfile(folder_path)
+            elif sys.platform == 'darwin':
+                subprocess.Popen(['open', folder_path])
+            else:  # linux
+                subprocess.Popen(['xdg-open', folder_path])
+        except Exception as e:
+            print(f"Error opening folder: {e}")
+
     def update_progress(self, progress: float, status: str = "") -> None:
         """
         Update progress bar and status.
@@ -103,14 +137,17 @@ class ProgressPanel(ctk.CTkFrame):
         self.percentage_label.configure(text="0%")
         self.status_label.configure(text="Ready to process")
         self.eta_label.configure(text="")
+        self.open_btn.pack_forget()
+        self.output_path = None
     
-    def complete(self, success: bool = True, message: str = "") -> None:
+    def complete(self, success: bool = True, message: str = "", output_path: str = None) -> None:
         """
         Mark process as complete.
         
         Args:
             success: Whether process completed successfully
             message: Completion message
+            output_path: Path to the generated file
         """
         self.progress_bar.set(1.0)
         self.percentage_label.configure(text="100%")
@@ -123,6 +160,10 @@ class ProgressPanel(ctk.CTkFrame):
             self.status_label.configure(text="✗ Failed")
         
         self.eta_label.configure(text="")
+
+        if success and output_path:
+            self.output_path = output_path
+            self.open_btn.pack(pady=(0, 15))
     
     @staticmethod
     def _format_time(seconds: float) -> str:
