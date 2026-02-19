@@ -2,8 +2,9 @@
 Hardware detection and configuration for CUDA/CPU optimization
 """
 
-import torch
+import platform
 from typing import Dict, Any
+import torch
 
 
 def detect_hardware() -> Dict[str, Any]:
@@ -14,14 +15,14 @@ def detect_hardware() -> Dict[str, Any]:
         Dict containing device type, compute type, and device index
     """
     cuda_available = torch.cuda.is_available()
-    
+
     hardware_info = {
         "device": "cuda" if cuda_available else "cpu",
         "cuda_available": cuda_available,
         "device_name": None,
         "compute_type": None,
     }
-    
+
     if cuda_available:
         hardware_info["device_name"] = torch.cuda.get_device_name(0)
         hardware_info["compute_type"] = "float16"  # Use FP16 for GPU
@@ -29,10 +30,16 @@ def detect_hardware() -> Dict[str, Any]:
         print(f"  Using compute type: {hardware_info['compute_type']}")
     else:
         hardware_info["device_name"] = "CPU"
-        hardware_info["compute_type"] = "float32"  # Use float32 for CPU stability
-        print(f"⚠ No CUDA GPU detected. Using CPU with float32")
-        print(f"  Note: CPU processing will be slower than GPU")
-    
+        # Optimize compute type for CPU (int8 supported by faster-whisper on Linux/Windows)
+        if platform.system() == "Darwin":
+            hardware_info["compute_type"] = "float32"  # Must be float32 on macOS
+            print("⚠ No CUDA GPU detected. Using CPU with float32")
+        else:
+            hardware_info["compute_type"] = "int8"  # Use int8 quantization for faster CPU inference
+            print("⚠ No CUDA GPU detected. Using CPU with int8 quantization")
+
+        print("  Note: CPU processing will be slower than GPU")
+
     return hardware_info
 
 
