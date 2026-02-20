@@ -5,6 +5,9 @@ Main GUI application for Japanese Subtitle Generator
 import customtkinter as ctk
 from tkinter import messagebox
 import threading
+import os
+import platform
+import subprocess
 from pathlib import Path
 from typing import Optional
 
@@ -109,6 +112,19 @@ class SubtitleGeneratorApp(ctk.CTk):
         )
         self.cancel_btn.pack(side="left", padx=10)
         
+        self.open_folder_btn = ctk.CTkButton(
+            button_frame,
+            text="Open Output Folder",
+            command=lambda: self._open_output_folder(self.current_file),
+            width=200,
+            height=45,
+            corner_radius=10,
+            font=("SF Pro", 16, "bold"),
+            fg_color="#10b981",  # Green color for success
+            hover_color="#059669"
+        )
+        # Initially hidden, shown on success
+
         # Hardware info
         from engine import detect_hardware
         hw_info = detect_hardware()
@@ -131,7 +147,41 @@ class SubtitleGeneratorApp(ctk.CTk):
         """
         self.current_file = file_path
         self.start_btn.configure(state="normal")
+
+        # Restore buttons state
+        self.open_folder_btn.pack_forget()
+
+        # Ensure Start button is visible and in correct order (Start, then Cancel)
+        self.start_btn.pack_forget()
+        self.cancel_btn.pack_forget()
+
+        self.start_btn.pack(side="left", padx=10)
+        self.cancel_btn.pack(side="left", padx=10)
     
+    def _open_output_folder(self, file_path: str) -> None:
+        """
+        Open the folder containing the generated subtitle file.
+
+        Args:
+            file_path: Path to original video file
+        """
+        if not file_path:
+            return
+
+        output_path = get_output_path(file_path)
+        folder_path = os.path.dirname(output_path)
+
+        try:
+            system = platform.system()
+            if system == "Windows":
+                os.startfile(folder_path)
+            elif system == "Darwin":  # macOS
+                subprocess.Popen(["open", folder_path])
+            else:  # Linux/Unix
+                subprocess.Popen(["xdg-open", folder_path])
+        except Exception as e:
+            print(f"Error opening folder: {e}")
+
     def _start_processing(self) -> None:
         """
         Start subtitle generation process.
@@ -145,6 +195,7 @@ class SubtitleGeneratorApp(ctk.CTk):
         self.start_btn.configure(state="disabled")
         self.cancel_btn.configure(state="normal")
         self.drop_zone.browse_btn.configure(state="disabled")
+        self.open_folder_btn.pack_forget()
         
         # Reset progress
         self.progress_panel.reset()
@@ -176,11 +227,12 @@ class SubtitleGeneratorApp(ctk.CTk):
             # Complete
             self._update_progress(1.0, f"✓ Subtitles saved to: {Path(output_path).name}")
             
-            # Show success message
-            self.after(0, lambda: messagebox.showinfo(
-                "Success",
-                f"Subtitles generated successfully!\n\nSaved to:\n{output_path}"
-            ))
+            # Show success state
+            def show_success():
+                self.start_btn.pack_forget()  # Hide start button
+                self.open_folder_btn.pack(side="left", padx=10)  # Show open folder button
+
+            self.after(0, show_success)
             
         except Exception as e:
             error_msg = str(e)
