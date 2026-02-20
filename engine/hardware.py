@@ -3,6 +3,7 @@ Hardware detection and configuration for CUDA/CPU optimization
 """
 
 import torch
+import platform
 from typing import Dict, Any
 
 
@@ -29,8 +30,16 @@ def detect_hardware() -> Dict[str, Any]:
         print(f"  Using compute type: {hardware_info['compute_type']}")
     else:
         hardware_info["device_name"] = "CPU"
-        hardware_info["compute_type"] = "float32"  # Use float32 for CPU stability
-        print(f"⚠ No CUDA GPU detected. Using CPU with float32")
+
+        # Optimize for CPU: Use int8 on Linux/Windows for better performance
+        # macOS requires float32 for stability
+        if platform.system() == "Darwin":
+            hardware_info["compute_type"] = "float32"
+            print(f"⚠ No CUDA GPU detected. Using CPU with float32 (macOS mode)")
+        else:
+            hardware_info["compute_type"] = "int8"
+            print(f"⚠ No CUDA GPU detected. Using CPU with int8 (optimized mode)")
+
         print(f"  Note: CPU processing will be slower than GPU")
     
     return hardware_info
