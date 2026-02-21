@@ -5,6 +5,10 @@ Custom UI components for the subtitle generator
 import customtkinter as ctk
 from typing import Callable, Optional
 import time
+import os
+import platform
+import subprocess
+from pathlib import Path
 
 
 class ProgressPanel(ctk.CTkFrame):
@@ -17,6 +21,7 @@ class ProgressPanel(ctk.CTkFrame):
         
         self.start_time = None
         self.last_progress = 0.0
+        self.output_path = None
         
         # Status label
         self.status_label = ctk.CTkLabel(
@@ -54,6 +59,18 @@ class ProgressPanel(ctk.CTkFrame):
             text_color=("gray40", "gray60")
         )
         self.eta_label.pack(pady=(5, 10))
+
+        # Open file button (initially hidden)
+        self.open_btn = ctk.CTkButton(
+            self,
+            text="Open Subtitle File",
+            command=self._open_file,
+            width=160,
+            height=32,
+            font=("SF Pro", 13),
+            fg_color=("gray70", "gray30"),
+            hover_color=("gray60", "gray40")
+        )
     
     def update_progress(self, progress: float, status: str = "") -> None:
         """
@@ -103,14 +120,19 @@ class ProgressPanel(ctk.CTkFrame):
         self.percentage_label.configure(text="0%")
         self.status_label.configure(text="Ready to process")
         self.eta_label.configure(text="")
+
+        # Reset button state
+        self.open_btn.pack_forget()
+        self.output_path = None
     
-    def complete(self, success: bool = True, message: str = "") -> None:
+    def complete(self, success: bool = True, message: str = "", output_path: Optional[str] = None) -> None:
         """
         Mark process as complete.
         
         Args:
             success: Whether process completed successfully
             message: Completion message
+            output_path: Path to the generated output file (optional)
         """
         self.progress_bar.set(1.0)
         self.percentage_label.configure(text="100%")
@@ -123,6 +145,31 @@ class ProgressPanel(ctk.CTkFrame):
             self.status_label.configure(text="✗ Failed")
         
         self.eta_label.configure(text="")
+
+        if success and output_path:
+            self.output_path = output_path
+            self.open_btn.pack(pady=(0, 15))
+        else:
+            self.open_btn.pack_forget()
+
+    def _open_file(self) -> None:
+        """
+        Open the output file using the default system application.
+        """
+        if not self.output_path:
+            return
+
+        try:
+            if platform.system() == 'Windows':
+                os.startfile(self.output_path)
+            elif platform.system() == 'Darwin':
+                subprocess.Popen(['open', self.output_path])
+            else:  # Linux
+                subprocess.Popen(['xdg-open', self.output_path])
+        except Exception as e:
+            print(f"Error opening file: {e}")
+            # Fallback to just printing the path if opening fails
+            pass
     
     @staticmethod
     def _format_time(seconds: float) -> str:
