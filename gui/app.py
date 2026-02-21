@@ -174,12 +174,10 @@ class SubtitleGeneratorApp(ctk.CTk):
             generate_srt(segments, output_path)
             
             # Complete
-            self._update_progress(1.0, f"✓ Subtitles saved to: {Path(output_path).name}")
-            
-            # Show success message
-            self.after(0, lambda: messagebox.showinfo(
-                "Success",
-                f"Subtitles generated successfully!\n\nSaved to:\n{output_path}"
+            self.after(0, lambda: self.progress_panel.complete(
+                success=True,
+                message=f"✓ Subtitles saved to: {Path(output_path).name}",
+                output_path=output_path
             ))
             
         except Exception as e:
