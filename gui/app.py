@@ -5,6 +5,9 @@ Main GUI application for Japanese Subtitle Generator
 import customtkinter as ctk
 from tkinter import messagebox
 import threading
+import os
+import subprocess
+import platform
 from pathlib import Path
 from typing import Optional
 
@@ -35,6 +38,7 @@ class SubtitleGeneratorApp(ctk.CTk):
         self.processing = False
         self.current_file = None
         self.transcriber = None
+        self.last_output_path = None
         
         # Build UI
         self._build_ui()
@@ -109,6 +113,19 @@ class SubtitleGeneratorApp(ctk.CTk):
         )
         self.cancel_btn.pack(side="left", padx=10)
         
+        self.open_folder_btn = ctk.CTkButton(
+            button_frame,
+            text="Open Folder 📂",
+            command=self._open_output_folder,
+            width=150,
+            height=45,
+            corner_radius=10,
+            font=("SF Pro", 16),
+            fg_color=("green", "darkgreen"),
+            hover_color=("lightgreen", "green")
+        )
+        # Initially hidden
+
         # Hardware info
         from engine import detect_hardware
         hw_info = detect_hardware()
@@ -140,6 +157,12 @@ class SubtitleGeneratorApp(ctk.CTk):
             messagebox.showerror("Error", "Please select a video file first")
             return
         
+        # Reset UI elements
+        self.open_folder_btn.pack_forget()
+        self.cancel_btn.pack(side="left", padx=10)
+        self.start_btn.configure(text="Generate Subtitles")
+        self.last_output_path = None
+
         # Disable controls
         self.processing = True
         self.start_btn.configure(state="disabled")
@@ -176,11 +199,8 @@ class SubtitleGeneratorApp(ctk.CTk):
             # Complete
             self._update_progress(1.0, f"✓ Subtitles saved to: {Path(output_path).name}")
             
-            # Show success message
-            self.after(0, lambda: messagebox.showinfo(
-                "Success",
-                f"Subtitles generated successfully!\n\nSaved to:\n{output_path}"
-            ))
+            # Show success UI
+            self.after(0, lambda: self._on_success(output_path))
             
         except Exception as e:
             error_msg = str(e)
@@ -231,6 +251,39 @@ class SubtitleGeneratorApp(ctk.CTk):
             message: Status message
         """
         self.after(0, lambda: self.progress_panel.update_progress(progress, message))
+
+    def _on_success(self, output_path: str) -> None:
+        """
+        Handle successful completion of subtitle generation.
+
+        Args:
+            output_path: Path to generated subtitle file
+        """
+        self.last_output_path = output_path
+
+        # Unpack cancel button and show open folder button
+        # We need to maintain order: Start | Open Folder
+        self.cancel_btn.pack_forget()
+        self.open_folder_btn.pack(side="left", padx=10)
+
+        # Reset start button text/state is handled in _finish_processing
+        self.start_btn.configure(text="Generate Another")
+
+    def _open_output_folder(self) -> None:
+        """
+        Open the folder containing the generated subtitles.
+        """
+        if not self.last_output_path:
+            return
+
+        folder_path = str(Path(self.last_output_path).parent)
+
+        if platform.system() == "Windows":
+            os.startfile(folder_path)
+        elif platform.system() == "Darwin":
+            subprocess.call(["open", folder_path])
+        else:
+            subprocess.call(["xdg-open", folder_path])
 
 
 def run_app():
