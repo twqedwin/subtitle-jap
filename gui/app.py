@@ -7,6 +7,9 @@ from tkinter import messagebox
 import threading
 from pathlib import Path
 from typing import Optional
+import os
+import subprocess
+import platform
 
 import config
 from .components import ProgressPanel, DropZone
@@ -33,6 +36,7 @@ class SubtitleGeneratorApp(ctk.CTk):
         
         # State
         self.processing = False
+        self.success_state = False
         self.current_file = None
         self.transcriber = None
         
@@ -108,6 +112,20 @@ class SubtitleGeneratorApp(ctk.CTk):
             state="disabled"
         )
         self.cancel_btn.pack(side="left", padx=10)
+
+        # Open folder button (initially hidden)
+        self.open_folder_btn = ctk.CTkButton(
+            button_frame,
+            text="📂 Open Output Folder",
+            command=None, # Will be set on success
+            width=200,
+            height=45,
+            corner_radius=10,
+            font=("SF Pro", 16, "bold"),
+            fg_color="#2CC985", # Success green
+            hover_color="#229966"
+        )
+        # Not packed initially
         
         # Hardware info
         from engine import detect_hardware
@@ -131,6 +149,11 @@ class SubtitleGeneratorApp(ctk.CTk):
         """
         self.current_file = file_path
         self.start_btn.configure(state="normal")
+
+        # Hide open folder button if visible (from previous run)
+        self.open_folder_btn.pack_forget()
+        # Ensure cancel button is visible (though disabled)
+        self.cancel_btn.pack(side="left", padx=10)
     
     def _start_processing(self) -> None:
         """
@@ -142,10 +165,14 @@ class SubtitleGeneratorApp(ctk.CTk):
         
         # Disable controls
         self.processing = True
+        self.success_state = False
         self.start_btn.configure(state="disabled")
         self.cancel_btn.configure(state="normal")
         self.drop_zone.browse_btn.configure(state="disabled")
         
+        # Hide open folder button if visible
+        self.open_folder_btn.pack_forget()
+
         # Reset progress
         self.progress_panel.reset()
         
@@ -176,11 +203,8 @@ class SubtitleGeneratorApp(ctk.CTk):
             # Complete
             self._update_progress(1.0, f"✓ Subtitles saved to: {Path(output_path).name}")
             
-            # Show success message
-            self.after(0, lambda: messagebox.showinfo(
-                "Success",
-                f"Subtitles generated successfully!\n\nSaved to:\n{output_path}"
-            ))
+            # Show success UI instead of blocking messagebox
+            self.after(0, lambda: self._show_success_ui(output_path))
             
         except Exception as e:
             error_msg = str(e)
@@ -195,6 +219,41 @@ class SubtitleGeneratorApp(ctk.CTk):
             # Re-enable controls
             self.after(0, self._finish_processing)
     
+    def _show_success_ui(self, output_path: str) -> None:
+        """
+        Show success UI elements.
+        """
+        self.success_state = True
+
+        # Configure button
+        self.open_folder_btn.configure(
+            command=lambda: self._open_output_folder(output_path)
+        )
+
+        # Hide cancel button and show open folder button
+        self.cancel_btn.pack_forget()
+        self.open_folder_btn.pack(side="left", padx=10)
+
+        # Also re-enable start button to allow new process
+        self.start_btn.configure(state="normal")
+        self.drop_zone.browse_btn.configure(state="normal")
+
+    def _open_output_folder(self, file_path: str) -> None:
+        """
+        Open the folder containing the file.
+        """
+        folder_path = str(Path(file_path).parent)
+
+        try:
+            if platform.system() == "Windows":
+                os.startfile(folder_path)
+            elif platform.system() == "Darwin":
+                subprocess.call(["open", folder_path])
+            else:
+                subprocess.call(["xdg-open", folder_path])
+        except Exception as e:
+            print(f"Error opening folder: {e}")
+
     def _cancel_processing(self) -> None:
         """
         Cancel current processing.
@@ -208,9 +267,15 @@ class SubtitleGeneratorApp(ctk.CTk):
         Finish processing and reset UI state.
         """
         self.processing = False
-        self.start_btn.configure(state="normal")
-        self.cancel_btn.configure(state="disabled")
-        self.drop_zone.browse_btn.configure(state="normal")
+        # Note: controls might have been re-enabled by _show_success_ui already
+        # but we ensure consistency here for error cases/cancellation
+        if self.success_state:
+             # If success button is shown, we don't want to revert everything blindly
+             pass
+        else:
+            self.start_btn.configure(state="normal")
+            self.cancel_btn.configure(state="disabled")
+            self.drop_zone.browse_btn.configure(state="normal")
     
     def _on_transcription_progress(self, progress: float, message: str) -> None:
         """
