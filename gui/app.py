@@ -7,6 +7,9 @@ from tkinter import messagebox
 import threading
 from pathlib import Path
 from typing import Optional
+import os
+import platform
+import subprocess
 
 import config
 from .components import ProgressPanel, DropZone
@@ -35,6 +38,7 @@ class SubtitleGeneratorApp(ctk.CTk):
         self.processing = False
         self.current_file = None
         self.transcriber = None
+        self.last_output_path = None
         
         # Build UI
         self._build_ui()
@@ -108,6 +112,19 @@ class SubtitleGeneratorApp(ctk.CTk):
             state="disabled"
         )
         self.cancel_btn.pack(side="left", padx=10)
+
+        self.open_folder_btn = ctk.CTkButton(
+            button_frame,
+            text="Open Location",
+            command=self._open_output_folder,
+            width=200,
+            height=45,
+            corner_radius=10,
+            font=("SF Pro", 16, "bold"),
+            fg_color=("green", "green"),
+            hover_color=("darkgreen", "darkgreen")
+        )
+        # Initially hidden
         
         # Hardware info
         from engine import detect_hardware
@@ -131,6 +148,11 @@ class SubtitleGeneratorApp(ctk.CTk):
         """
         self.current_file = file_path
         self.start_btn.configure(state="normal")
+
+        # Reset buttons (hide open folder, show cancel)
+        self.open_folder_btn.pack_forget()
+        self.cancel_btn.pack(side="left", padx=10)
+        self.cancel_btn.configure(state="disabled")
     
     def _start_processing(self) -> None:
         """
@@ -143,9 +165,13 @@ class SubtitleGeneratorApp(ctk.CTk):
         # Disable controls
         self.processing = True
         self.start_btn.configure(state="disabled")
-        self.cancel_btn.configure(state="normal")
         self.drop_zone.browse_btn.configure(state="disabled")
         
+        # Reset buttons
+        self.open_folder_btn.pack_forget()
+        self.cancel_btn.pack(side="left", padx=10)
+        self.cancel_btn.configure(state="normal")
+
         # Reset progress
         self.progress_panel.reset()
         
@@ -177,10 +203,7 @@ class SubtitleGeneratorApp(ctk.CTk):
             self._update_progress(1.0, f"✓ Subtitles saved to: {Path(output_path).name}")
             
             # Show success message
-            self.after(0, lambda: messagebox.showinfo(
-                "Success",
-                f"Subtitles generated successfully!\n\nSaved to:\n{output_path}"
-            ))
+            self.after(0, lambda: self._show_success(output_path))
             
         except Exception as e:
             error_msg = str(e)
@@ -231,6 +254,45 @@ class SubtitleGeneratorApp(ctk.CTk):
             message: Status message
         """
         self.after(0, lambda: self.progress_panel.update_progress(progress, message))
+
+    def _show_success(self, output_path: str) -> None:
+        """
+        Show success state in UI.
+
+        Args:
+            output_path: Path to generated subtitle file
+        """
+        self.last_output_path = output_path
+
+        # Switch buttons: hide cancel, show open folder
+        self.cancel_btn.pack_forget()
+        self.open_folder_btn.pack(side="left", padx=10)
+
+        # Verify file exists
+        if not os.path.exists(output_path):
+            messagebox.showwarning("Warning", f"Output file not found:\n{output_path}")
+
+    def _open_output_folder(self) -> None:
+        """
+        Open the folder containing the generated subtitle file.
+        """
+        if not self.last_output_path:
+            return
+
+        try:
+            path = self.last_output_path
+            # Get parent directory
+            folder = str(Path(path).parent)
+
+            if platform.system() == "Windows":
+                os.startfile(folder)
+            elif platform.system() == "Darwin":
+                subprocess.call(["open", folder])
+            else:
+                subprocess.call(["xdg-open", folder])
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not open folder:\n{e}")
 
 
 def run_app():
