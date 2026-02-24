@@ -77,18 +77,9 @@ class JapaneseTranscriber:
         start_time = time.time()
         
         try:
-            # Get audio info for progress tracking
-            import wave
-            with wave.open(audio_path, 'rb') as wf:
-                frames = wf.getnframes()
-                rate = wf.getframerate()
-                duration = frames / float(rate)
-            
-            print(f"\nDetected language: {config.LANGUAGE}")
-            print(f"Duration: {duration:.2f} seconds")
-            
             # Transcribe with optimized parameters
             # Enable VAD for performance (config.VAD_FILTER handles platform safety)
+            # The model automatically handles audio extraction from video files
             segments_generator, info = self.model.transcribe(
                 audio_path,
                 language=config.LANGUAGE,
@@ -100,6 +91,11 @@ class JapaneseTranscriber:
                 word_timestamps=False,
             )
             
+            # Get info from model
+            duration = info.duration
+            print(f"\nDetected language: {info.language}")
+            print(f"Duration: {duration:.2f} seconds")
+
             print(f"\nProcessing segments...")
             
             # Process segments
