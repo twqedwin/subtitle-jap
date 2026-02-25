@@ -10,6 +10,7 @@ from typing import Optional
 
 import config
 from .components import ProgressPanel, DropZone
+from .utils import open_file_in_explorer
 from engine import JapaneseTranscriber, extract_audio, cleanup_temp_audio
 from subtitle import generate_srt, get_output_path
 
@@ -34,6 +35,7 @@ class SubtitleGeneratorApp(ctk.CTk):
         # State
         self.processing = False
         self.current_file = None
+        self.last_output_path = None
         self.transcriber = None
         
         # Build UI
@@ -109,6 +111,19 @@ class SubtitleGeneratorApp(ctk.CTk):
         )
         self.cancel_btn.pack(side="left", padx=10)
         
+        self.open_btn = ctk.CTkButton(
+            button_frame,
+            text="📂 Open Location",
+            command=self._open_output_location,
+            width=160,
+            height=45,
+            corner_radius=10,
+            font=("SF Pro", 16),
+            fg_color=("green", "green"),
+            hover_color=("darkgreen", "darkgreen"),
+        )
+        # Not packed initially - shown only after success
+
         # Hardware info
         from engine import detect_hardware
         hw_info = detect_hardware()
@@ -122,6 +137,25 @@ class SubtitleGeneratorApp(ctk.CTk):
         )
         device_label.pack(pady=(10, 20))
     
+    def _open_output_location(self) -> None:
+        """
+        Open the file explorer at the output location.
+        """
+        if self.last_output_path:
+            open_file_in_explorer(self.last_output_path)
+
+    def _show_success(self, output_path: str) -> None:
+        """
+        Update UI to show success state.
+
+        Args:
+            output_path: Path to the generated file
+        """
+        self.last_output_path = output_path
+        self.open_btn.pack(side="left", padx=10)
+
+        # Also ensure start button is enabled (handled by finish_processing)
+
     def _on_file_selected(self, file_path: str) -> None:
         """
         Callback when file is selected.
@@ -140,6 +174,9 @@ class SubtitleGeneratorApp(ctk.CTk):
             messagebox.showerror("Error", "Please select a video file first")
             return
         
+        # Hide previous success button if any
+        self.open_btn.pack_forget()
+
         # Disable controls
         self.processing = True
         self.start_btn.configure(state="disabled")
@@ -176,11 +213,8 @@ class SubtitleGeneratorApp(ctk.CTk):
             # Complete
             self._update_progress(1.0, f"✓ Subtitles saved to: {Path(output_path).name}")
             
-            # Show success message
-            self.after(0, lambda: messagebox.showinfo(
-                "Success",
-                f"Subtitles generated successfully!\n\nSaved to:\n{output_path}"
-            ))
+            # Show success state
+            self.after(0, lambda: self._show_success(output_path))
             
         except Exception as e:
             error_msg = str(e)
