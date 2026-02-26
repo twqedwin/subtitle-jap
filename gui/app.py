@@ -10,6 +10,7 @@ from typing import Optional
 
 import config
 from .components import ProgressPanel, DropZone
+from .utils import open_file_explorer
 from engine import JapaneseTranscriber, extract_audio, cleanup_temp_audio
 from subtitle import generate_srt, get_output_path
 
@@ -35,6 +36,7 @@ class SubtitleGeneratorApp(ctk.CTk):
         self.processing = False
         self.current_file = None
         self.transcriber = None
+        self.last_output_path = None
         
         # Build UI
         self._build_ui()
@@ -109,6 +111,18 @@ class SubtitleGeneratorApp(ctk.CTk):
         )
         self.cancel_btn.pack(side="left", padx=10)
         
+        self.open_btn = ctk.CTkButton(
+            button_frame,
+            text="Open Folder",
+            command=self._open_output_folder,
+            width=150,
+            height=45,
+            corner_radius=10,
+            font=("SF Pro", 16),
+            fg_color="#2CC985",  # Success green
+            hover_color="#229965"
+        )
+
         # Hardware info
         from engine import detect_hardware
         hw_info = detect_hardware()
@@ -122,6 +136,13 @@ class SubtitleGeneratorApp(ctk.CTk):
         )
         device_label.pack(pady=(10, 20))
     
+    def _open_output_folder(self) -> None:
+        """
+        Open the folder containing the generated subtitles.
+        """
+        if self.last_output_path:
+            open_file_explorer(self.last_output_path)
+
     def _on_file_selected(self, file_path: str) -> None:
         """
         Callback when file is selected.
@@ -146,6 +167,11 @@ class SubtitleGeneratorApp(ctk.CTk):
         self.cancel_btn.configure(state="normal")
         self.drop_zone.browse_btn.configure(state="disabled")
         
+        # Reset output path and button visibility
+        self.last_output_path = None
+        self.open_btn.pack_forget()
+        self.cancel_btn.pack(side="left", padx=10)
+
         # Reset progress
         self.progress_panel.reset()
         
@@ -175,12 +201,7 @@ class SubtitleGeneratorApp(ctk.CTk):
             
             # Complete
             self._update_progress(1.0, f"✓ Subtitles saved to: {Path(output_path).name}")
-            
-            # Show success message
-            self.after(0, lambda: messagebox.showinfo(
-                "Success",
-                f"Subtitles generated successfully!\n\nSaved to:\n{output_path}"
-            ))
+            self.last_output_path = output_path
             
         except Exception as e:
             error_msg = str(e)
@@ -211,6 +232,10 @@ class SubtitleGeneratorApp(ctk.CTk):
         self.start_btn.configure(state="normal")
         self.cancel_btn.configure(state="disabled")
         self.drop_zone.browse_btn.configure(state="normal")
+
+        if self.last_output_path:
+            self.cancel_btn.pack_forget()
+            self.open_btn.pack(side="left", padx=10)
     
     def _on_transcription_progress(self, progress: float, message: str) -> None:
         """
