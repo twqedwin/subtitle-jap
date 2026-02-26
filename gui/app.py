@@ -10,7 +10,7 @@ from typing import Optional
 
 import config
 from .components import ProgressPanel, DropZone
-from engine import JapaneseTranscriber, extract_audio, cleanup_temp_audio
+from engine import JapaneseTranscriber
 from subtitle import generate_srt, get_output_path
 
 
@@ -157,16 +157,14 @@ class SubtitleGeneratorApp(ctk.CTk):
         """
         Process video file (runs in background thread).
         """
-        audio_file = None
+        # Optimized: Pass video file directly to transcriber
+        # No need to extract audio first (saves time and disk I/O)
         
         try:
-            # Step 1: Extract audio
-            self._update_progress(0.0, "Extracting audio from video...")
-            audio_file = extract_audio(self.current_file)
-            
-            # Step 2: Transcribe
-            self._update_progress(0.2, "Loading model and starting transcription...")
-            segments = self.transcriber.transcribe(audio_file)
+            # Step 1 & 2 combined: Transcribe
+            # Note: transcriber handles loading model if needed
+            self._update_progress(0.1, "Starting transcription...")
+            segments = self.transcriber.transcribe(self.current_file)
             
             # Step 3: Generate SRT
             self._update_progress(0.9, "Generating subtitle file...")
@@ -188,10 +186,6 @@ class SubtitleGeneratorApp(ctk.CTk):
             self.after(0, lambda: messagebox.showerror("Error", error_msg))
             
         finally:
-            # Cleanup
-            if audio_file:
-                cleanup_temp_audio(audio_file)
-            
             # Re-enable controls
             self.after(0, self._finish_processing)
     
