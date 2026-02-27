@@ -54,6 +54,20 @@ class ProgressPanel(ctk.CTkFrame):
             text_color=("gray40", "gray60")
         )
         self.eta_label.pack(pady=(5, 10))
+
+        # Action button (hidden by default)
+        self.action_btn = ctk.CTkButton(
+            self,
+            text="",
+            width=200,
+            height=30,
+            corner_radius=8,
+            font=("SF Pro", 12),
+            fg_color="transparent",
+            border_width=1,
+            text_color=("gray20", "gray80")
+        )
+        # Don't pack it yet
     
     def update_progress(self, progress: float, status: str = "") -> None:
         """
@@ -103,6 +117,18 @@ class ProgressPanel(ctk.CTkFrame):
         self.percentage_label.configure(text="0%")
         self.status_label.configure(text="Ready to process")
         self.eta_label.configure(text="")
+        self.action_btn.pack_forget()
+
+    def show_action(self, text: str, command: Callable[[], None]) -> None:
+        """
+        Show an action button below the progress bar.
+
+        Args:
+            text: Button text
+            command: Callback function
+        """
+        self.action_btn.configure(text=text, command=command)
+        self.action_btn.pack(pady=10)
     
     def complete(self, success: bool = True, message: str = "") -> None:
         """

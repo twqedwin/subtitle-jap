@@ -10,6 +10,7 @@ from typing import Optional
 
 import config
 from .components import ProgressPanel, DropZone
+from .utils import open_file_explorer
 from engine import JapaneseTranscriber, extract_audio, cleanup_temp_audio
 from subtitle import generate_srt, get_output_path
 
@@ -176,10 +177,10 @@ class SubtitleGeneratorApp(ctk.CTk):
             # Complete
             self._update_progress(1.0, f"✓ Subtitles saved to: {Path(output_path).name}")
             
-            # Show success message
-            self.after(0, lambda: messagebox.showinfo(
-                "Success",
-                f"Subtitles generated successfully!\n\nSaved to:\n{output_path}"
+            # Show "Open Location" button instead of blocking alert
+            self.after(0, lambda: self.progress_panel.show_action(
+                "📂 Open File Location",
+                lambda: open_file_explorer(output_path)
             ))
             
         except Exception as e:
