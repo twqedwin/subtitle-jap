@@ -55,12 +55,12 @@ class JapaneseTranscriber:
             self._update_progress(0.0, error_msg)
             raise RuntimeError(error_msg)
     
-    def transcribe(self, audio_path: str) -> List[Dict]:
+    def transcribe(self, media_path: str) -> List[Dict]:
         """
-        Transcribe audio file to Japanese text with timestamps.
+        Transcribe audio/video file to Japanese text with timestamps.
         
         Args:
-            audio_path: Path to audio file
+            media_path: Path to audio or video file
             
         Returns:
             List of segments with 'start', 'end', and 'text' keys
@@ -69,7 +69,7 @@ class JapaneseTranscriber:
             self.load_model()
         
         self._update_progress(0.2, "Starting transcription...")
-        print(f"\nTranscribing: {audio_path}")
+        print(f"\nTranscribing: {media_path}")
         print(f"Language: {config.LANGUAGE}")
         print(f"Beam size: {config.BEAM_SIZE}")
         print(f"Initial prompt: {config.INITIAL_PROMPT}")
@@ -77,20 +77,11 @@ class JapaneseTranscriber:
         start_time = time.time()
         
         try:
-            # Get audio info for progress tracking
-            import wave
-            with wave.open(audio_path, 'rb') as wf:
-                frames = wf.getnframes()
-                rate = wf.getframerate()
-                duration = frames / float(rate)
-            
-            print(f"\nDetected language: {config.LANGUAGE}")
-            print(f"Duration: {duration:.2f} seconds")
-            
             # Transcribe with optimized parameters
-            # Enable VAD for performance (config.VAD_FILTER handles platform safety)
+            # faster-whisper handles media loading internally (via PyAV/ffmpeg)
+            # This allows direct processing of video files without pre-extraction
             segments_generator, info = self.model.transcribe(
-                audio_path,
+                media_path,
                 language=config.LANGUAGE,
                 beam_size=config.BEAM_SIZE,
                 temperature=config.TEMPERATURE,
@@ -100,6 +91,10 @@ class JapaneseTranscriber:
                 word_timestamps=False,
             )
             
+            duration = info.duration
+            print(f"\nDetected language: {config.LANGUAGE}")
+            print(f"Duration: {duration:.2f} seconds")
+
             print(f"\nProcessing segments...")
             
             # Process segments
@@ -115,11 +110,12 @@ class JapaneseTranscriber:
                 
                 # Update progress based on time processed
                 processed_time = segment.end
-                progress = 0.2 + (0.7 * (processed_time / duration))
-                self._update_progress(
-                    min(progress, 0.9),
-                    f"Processing: {processed_time:.0f}s / {duration:.0f}s"
-                )
+                if duration > 0:
+                    progress = 0.2 + (0.7 * (processed_time / duration))
+                    self._update_progress(
+                        min(progress, 0.9),
+                        f"Processing: {processed_time:.0f}s / {duration:.0f}s"
+                    )
             
             elapsed_time = time.time() - start_time
             rtf = elapsed_time / duration if duration > 0 else 0
@@ -154,13 +150,13 @@ if __name__ == "__main__":
     import sys
     
     if len(sys.argv) < 2:
-        print("Usage: python transcriber.py <audio_file>")
+        print("Usage: python transcriber.py <media_file>")
         sys.exit(1)
     
-    audio_file = sys.argv[1]
+    media_file = sys.argv[1]
     
     transcriber = JapaneseTranscriber()
-    segments = transcriber.transcribe(audio_file)
+    segments = transcriber.transcribe(media_file)
     
     print("\n" + "=" * 50)
     print("TRANSCRIPTION RESULTS:")
