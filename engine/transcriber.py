@@ -57,10 +57,10 @@ class JapaneseTranscriber:
     
     def transcribe(self, audio_path: str) -> List[Dict]:
         """
-        Transcribe audio file to Japanese text with timestamps.
+        Transcribe audio or video file to Japanese text with timestamps.
         
         Args:
-            audio_path: Path to audio file
+            audio_path: Path to audio or video file
             
         Returns:
             List of segments with 'start', 'end', and 'text' keys
@@ -77,18 +77,9 @@ class JapaneseTranscriber:
         start_time = time.time()
         
         try:
-            # Get audio info for progress tracking
-            import wave
-            with wave.open(audio_path, 'rb') as wf:
-                frames = wf.getnframes()
-                rate = wf.getframerate()
-                duration = frames / float(rate)
-            
-            print(f"\nDetected language: {config.LANGUAGE}")
-            print(f"Duration: {duration:.2f} seconds")
-            
             # Transcribe with optimized parameters
             # Enable VAD for performance (config.VAD_FILTER handles platform safety)
+            # faster-whisper extracts audio natively from video files using internal ffmpeg
             segments_generator, info = self.model.transcribe(
                 audio_path,
                 language=config.LANGUAGE,
@@ -100,6 +91,9 @@ class JapaneseTranscriber:
                 word_timestamps=False,
             )
             
+            duration = info.duration
+            print(f"\nDetected language: {info.language}")
+            print(f"Duration: {duration:.2f} seconds")
             print(f"\nProcessing segments...")
             
             # Process segments
@@ -115,7 +109,10 @@ class JapaneseTranscriber:
                 
                 # Update progress based on time processed
                 processed_time = segment.end
-                progress = 0.2 + (0.7 * (processed_time / duration))
+                if duration > 0:
+                    progress = 0.2 + (0.7 * (processed_time / duration))
+                else:
+                    progress = 0.9
                 self._update_progress(
                     min(progress, 0.9),
                     f"Processing: {processed_time:.0f}s / {duration:.0f}s"
@@ -154,13 +151,13 @@ if __name__ == "__main__":
     import sys
     
     if len(sys.argv) < 2:
-        print("Usage: python transcriber.py <audio_file>")
+        print("Usage: python transcriber.py <media_file>")
         sys.exit(1)
     
-    audio_file = sys.argv[1]
+    media_file = sys.argv[1]
     
     transcriber = JapaneseTranscriber()
-    segments = transcriber.transcribe(audio_file)
+    segments = transcriber.transcribe(media_file)
     
     print("\n" + "=" * 50)
     print("TRANSCRIPTION RESULTS:")
