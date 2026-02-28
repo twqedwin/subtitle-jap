@@ -174,17 +174,18 @@ class SubtitleGeneratorApp(ctk.CTk):
             generate_srt(segments, output_path)
             
             # Complete
-            self._update_progress(1.0, f"✓ Subtitles saved to: {Path(output_path).name}")
-            
-            # Show success message
-            self.after(0, lambda: messagebox.showinfo(
-                "Success",
-                f"Subtitles generated successfully!\n\nSaved to:\n{output_path}"
-            ))
+            self._complete_progress(
+                success=True,
+                message=f"✓ Subtitles saved to: {Path(output_path).name}",
+                output_path=output_path
+            )
             
         except Exception as e:
             error_msg = str(e)
-            self._update_progress(0.0, f"✗ Error: {error_msg}")
+            self._complete_progress(
+                success=False,
+                message=f"✗ Error: {error_msg}"
+            )
             self.after(0, lambda: messagebox.showerror("Error", error_msg))
             
         finally:
@@ -231,6 +232,17 @@ class SubtitleGeneratorApp(ctk.CTk):
             message: Status message
         """
         self.after(0, lambda: self.progress_panel.update_progress(progress, message))
+
+    def _complete_progress(self, success: bool, message: str, output_path: str = None) -> None:
+        """
+        Complete progress display (thread-safe).
+
+        Args:
+            success: Whether the process completed successfully
+            message: Status message
+            output_path: Path to the generated output file
+        """
+        self.after(0, lambda: self.progress_panel.complete(success, message, output_path))
 
 
 def run_app():
