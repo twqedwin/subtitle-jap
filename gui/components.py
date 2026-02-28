@@ -5,6 +5,7 @@ Custom UI components for the subtitle generator
 import customtkinter as ctk
 from typing import Callable, Optional
 import time
+from .utils import open_file_location
 
 
 class ProgressPanel(ctk.CTkFrame):
@@ -54,6 +55,26 @@ class ProgressPanel(ctk.CTkFrame):
             text_color=("gray40", "gray60")
         )
         self.eta_label.pack(pady=(5, 10))
+
+        # Open Location button (hidden initially)
+        self.current_output_path = None
+        self.open_location_btn = ctk.CTkButton(
+            self,
+            text="Open Location",
+            command=self._open_location,
+            width=120,
+            height=30,
+            corner_radius=8,
+            font=("SF Pro", 12),
+            fg_color=("gray70", "gray30"),
+            hover_color=("gray60", "gray40"),
+        )
+        # We don't pack it yet
+
+    def _open_location(self) -> None:
+        """Open the folder containing the generated subtitles."""
+        if self.current_output_path:
+            open_file_location(self.current_output_path)
     
     def update_progress(self, progress: float, status: str = "") -> None:
         """
@@ -103,14 +124,19 @@ class ProgressPanel(ctk.CTkFrame):
         self.percentage_label.configure(text="0%")
         self.status_label.configure(text="Ready to process")
         self.eta_label.configure(text="")
+
+        # Hide open location button
+        self.current_output_path = None
+        self.open_location_btn.pack_forget()
     
-    def complete(self, success: bool = True, message: str = "") -> None:
+    def complete(self, success: bool = True, message: str = "", output_path: str = None) -> None:
         """
         Mark process as complete.
         
         Args:
             success: Whether process completed successfully
             message: Completion message
+            output_path: Path to the generated output file (if successful)
         """
         self.progress_bar.set(1.0)
         self.percentage_label.configure(text="100%")
@@ -123,6 +149,11 @@ class ProgressPanel(ctk.CTkFrame):
             self.status_label.configure(text="✗ Failed")
         
         self.eta_label.configure(text="")
+
+        # Show open location button if successful and we have a path
+        if success and output_path:
+            self.current_output_path = output_path
+            self.open_location_btn.pack(pady=(0, 10))
     
     @staticmethod
     def _format_time(seconds: float) -> str:
