@@ -1,0 +1,3 @@
+## 2024-05-24 - Inline Contextual Actions in CustomTkinter
+**Learning:** Replacing blocking UI dialogs (`tkinter.messagebox`) with inline reveals improves UX by not freezing the application flow. When doing this in `customtkinter` with elements packed using `side="left"`, dynamically making a widget visible requires explicitly unpacking all neighboring widgets and repacking them in the correct visual sequence left-to-right to maintain order.
+**Action:** When adding conditional UI elements to a horizontal layout in CustomTkinter, implement dedicated `_show_X` and `_hide_X` methods that reset the packing of the entire row (e.g., `pack_forget()` followed by sequential `pack()`) rather than just toggling the target widget's state.
