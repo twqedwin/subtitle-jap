@@ -1,5 +1,9 @@
 """
 Audio extraction from video files using ffmpeg
+
+Note: This file is retained as a developer utility for manual audio
+extraction testing and is not used by the main application, as
+faster-whisper handles video files directly.
 """
 
 import os
