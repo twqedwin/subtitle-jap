@@ -10,6 +10,7 @@ from typing import Optional
 
 import config
 from .components import ProgressPanel, DropZone
+from .utils import open_file_explorer
 from engine import JapaneseTranscriber, extract_audio, cleanup_temp_audio
 from subtitle import generate_srt, get_output_path
 
@@ -35,6 +36,7 @@ class SubtitleGeneratorApp(ctk.CTk):
         self.processing = False
         self.current_file = None
         self.transcriber = None
+        self.last_output_path = None
         
         # Build UI
         self._build_ui()
@@ -109,6 +111,19 @@ class SubtitleGeneratorApp(ctk.CTk):
         )
         self.cancel_btn.pack(side="left", padx=10)
         
+        self.open_folder_btn = ctk.CTkButton(
+            button_frame,
+            text="Open Location",
+            command=self._open_output_folder,
+            width=150,
+            height=45,
+            corner_radius=10,
+            font=("SF Pro", 16),
+            fg_color=("gray60", "gray40"),
+            hover_color=("gray50", "gray50"),
+        )
+        # Initially hidden
+
         # Hardware info
         from engine import detect_hardware
         hw_info = detect_hardware()
@@ -148,6 +163,7 @@ class SubtitleGeneratorApp(ctk.CTk):
         
         # Reset progress
         self.progress_panel.reset()
+        self._hide_open_location_btn()
         
         # Start processing in background thread
         thread = threading.Thread(target=self._process_video, daemon=True)
@@ -176,11 +192,8 @@ class SubtitleGeneratorApp(ctk.CTk):
             # Complete
             self._update_progress(1.0, f"✓ Subtitles saved to: {Path(output_path).name}")
             
-            # Show success message
-            self.after(0, lambda: messagebox.showinfo(
-                "Success",
-                f"Subtitles generated successfully!\n\nSaved to:\n{output_path}"
-            ))
+            self.last_output_path = output_path
+            self.after(0, self._show_open_location_btn)
             
         except Exception as e:
             error_msg = str(e)
@@ -222,6 +235,40 @@ class SubtitleGeneratorApp(ctk.CTk):
         """
         self._update_progress(progress, message)
     
+    def _show_open_location_btn(self) -> None:
+        """
+        Show the Open Location button inline.
+        """
+        # Unpack to maintain order
+        self.start_btn.pack_forget()
+        self.cancel_btn.pack_forget()
+        self.open_folder_btn.pack_forget()
+
+        # Repack in order
+        self.start_btn.pack(side="left", padx=10)
+        self.cancel_btn.pack(side="left", padx=10)
+        self.open_folder_btn.pack(side="left", padx=10)
+
+    def _hide_open_location_btn(self) -> None:
+        """
+        Hide the Open Location button inline.
+        """
+        # Unpack to maintain order
+        self.start_btn.pack_forget()
+        self.cancel_btn.pack_forget()
+        self.open_folder_btn.pack_forget()
+
+        # Repack without open folder btn
+        self.start_btn.pack(side="left", padx=10)
+        self.cancel_btn.pack(side="left", padx=10)
+
+    def _open_output_folder(self) -> None:
+        """
+        Open the output folder and select the generated file.
+        """
+        if self.last_output_path:
+            open_file_explorer(self.last_output_path)
+
     def _update_progress(self, progress: float, message: str) -> None:
         """
         Update progress display (thread-safe).
