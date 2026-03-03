@@ -1,0 +1,3 @@
+## 2024-05-24 - Non-blocking Dialogs & Packing Sequences in CustomTkinter
+**Learning:** Native `tkinter.messagebox` dialogs block the main thread and freeze the UI until interacted with. When transitioning to inline success notifications (like showing an "Open Location" button), dynamically toggling widget visibility in a `pack(side='left')` layout requires un-packing and re-packing the entire sequence of adjacent widgets to maintain visual order.
+**Action:** Replace blocking dialogs with in-line status text and action buttons to improve workflow. Always use `pack_forget()` on all siblings in a horizontal/vertical sequence before re-packing them in the desired order when changing visibility in `customtkinter`.
