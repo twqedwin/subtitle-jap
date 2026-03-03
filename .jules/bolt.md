@@ -1,0 +1,3 @@
+## 2024-05-18 - Faster-whisper native video processing
+**Learning:** faster-whisper natively accepts video files for transcription because it extracts audio internally using FFmpeg. Explicitly extracting audio to a temporary file in the codebase adds redundant disk I/O and significantly slows down overall processing speed without providing any benefits. Reading file duration via `wave` also restricts the engine from directly processing video file inputs.
+**Action:** Always leverage built-in capability of inference engines (like faster-whisper) before building custom pre-processing steps. Avoid redundant disk I/O when processing large media files.
