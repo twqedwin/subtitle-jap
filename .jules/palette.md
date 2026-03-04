@@ -1,0 +1,3 @@
+## 2025-03-04 - CustomTkinter UI Toggles and Blocking Dialogs
+**Learning:** CustomTkinter sequential layout order using `pack(side='left')` breaks when dynamically showing/hiding individual widgets. Also, blocking dialogs like `tkinter.messagebox` freeze the UI and create an abrupt user experience upon async process completion.
+**Action:** Always fully unpack all sibling elements (using `pack_forget()`) and repack them in order when toggling visibility to maintain visual hierarchy. Avoid using blocking dialogs for async success notifications; favor inline, non-blocking UI state updates like revealing an "Open Location" contextual action button instead.
