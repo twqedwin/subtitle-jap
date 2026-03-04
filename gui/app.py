@@ -12,6 +12,7 @@ import config
 from .components import ProgressPanel, DropZone
 from engine import JapaneseTranscriber, extract_audio, cleanup_temp_audio
 from subtitle import generate_srt, get_output_path
+from .utils import open_file_explorer
 
 
 class SubtitleGeneratorApp(ctk.CTk):
@@ -35,6 +36,7 @@ class SubtitleGeneratorApp(ctk.CTk):
         self.processing = False
         self.current_file = None
         self.transcriber = None
+        self.output_path = None
         
         # Build UI
         self._build_ui()
@@ -80,11 +82,11 @@ class SubtitleGeneratorApp(ctk.CTk):
         self.progress_panel.pack(pady=20, padx=50)
         
         # Control buttons
-        button_frame = ctk.CTkFrame(self, fg_color="transparent")
-        button_frame.pack(pady=20)
+        self.button_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.button_frame.pack(pady=20)
         
         self.start_btn = ctk.CTkButton(
-            button_frame,
+            self.button_frame,
             text="Generate Subtitles",
             command=self._start_processing,
             width=200,
@@ -96,7 +98,7 @@ class SubtitleGeneratorApp(ctk.CTk):
         self.start_btn.pack(side="left", padx=10)
         
         self.cancel_btn = ctk.CTkButton(
-            button_frame,
+            self.button_frame,
             text="Cancel",
             command=self._cancel_processing,
             width=120,
@@ -109,6 +111,18 @@ class SubtitleGeneratorApp(ctk.CTk):
         )
         self.cancel_btn.pack(side="left", padx=10)
         
+        self.open_loc_btn = ctk.CTkButton(
+            self.button_frame,
+            text="Open Location",
+            command=self._open_output_location,
+            width=150,
+            height=45,
+            corner_radius=10,
+            font=("SF Pro", 16),
+            fg_color=("green", "darkgreen"),
+            hover_color=("darkgreen", "green")
+        )
+
         # Hardware info
         from engine import detect_hardware
         hw_info = detect_hardware()
@@ -131,6 +145,7 @@ class SubtitleGeneratorApp(ctk.CTk):
         """
         self.current_file = file_path
         self.start_btn.configure(state="normal")
+        self._hide_open_location_btn()
     
     def _start_processing(self) -> None:
         """
@@ -140,6 +155,8 @@ class SubtitleGeneratorApp(ctk.CTk):
             messagebox.showerror("Error", "Please select a video file first")
             return
         
+        self._hide_open_location_btn()
+
         # Disable controls
         self.processing = True
         self.start_btn.configure(state="disabled")
@@ -176,11 +193,8 @@ class SubtitleGeneratorApp(ctk.CTk):
             # Complete
             self._update_progress(1.0, f"✓ Subtitles saved to: {Path(output_path).name}")
             
-            # Show success message
-            self.after(0, lambda: messagebox.showinfo(
-                "Success",
-                f"Subtitles generated successfully!\n\nSaved to:\n{output_path}"
-            ))
+            # Schedule showing the open location button
+            self.after(0, lambda: self._show_open_location_btn(output_path))
             
         except Exception as e:
             error_msg = str(e)
@@ -231,6 +245,33 @@ class SubtitleGeneratorApp(ctk.CTk):
             message: Status message
         """
         self.after(0, lambda: self.progress_panel.update_progress(progress, message))
+
+    def _show_open_location_btn(self, output_path: str) -> None:
+        """Show the open location button safely."""
+        self.output_path = output_path
+
+        # Unpack all to maintain order
+        self.start_btn.pack_forget()
+        self.cancel_btn.pack_forget()
+        self.open_loc_btn.pack_forget()
+
+        # Repack in order
+        self.start_btn.pack(side="left", padx=10)
+        self.cancel_btn.pack(side="left", padx=10)
+        self.open_loc_btn.pack(side="left", padx=10)
+
+    def _hide_open_location_btn(self) -> None:
+        """Hide the open location button safely."""
+        self.start_btn.pack_forget()
+        self.cancel_btn.pack_forget()
+        self.open_loc_btn.pack_forget()
+
+        self.start_btn.pack(side="left", padx=10)
+        self.cancel_btn.pack(side="left", padx=10)
+
+    def _open_output_location(self) -> None:
+        if self.output_path:
+            open_file_explorer(self.output_path)
 
 
 def run_app():
