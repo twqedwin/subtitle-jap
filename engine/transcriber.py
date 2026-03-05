@@ -77,29 +77,30 @@ class JapaneseTranscriber:
         start_time = time.time()
         
         try:
-            # Get audio info for progress tracking
-            import wave
-            with wave.open(audio_path, 'rb') as wf:
-                frames = wf.getnframes()
-                rate = wf.getframerate()
-                duration = frames / float(rate)
-            
-            print(f"\nDetected language: {config.LANGUAGE}")
-            print(f"Duration: {duration:.2f} seconds")
-            
-            # Transcribe with optimized parameters
+            # Prepare optimized transcribe parameters
             # Enable VAD for performance (config.VAD_FILTER handles platform safety)
+            transcribe_kwargs = {
+                "language": config.LANGUAGE,
+                "beam_size": config.BEAM_SIZE,
+                "temperature": config.TEMPERATURE,
+                "initial_prompt": config.INITIAL_PROMPT,
+                "vad_filter": config.VAD_FILTER,
+                "word_timestamps": False,
+            }
+            # VAD Activity Detection (VAD) must remain disabled on macOS systems.
+            # The vad_parameters argument must be strictly omitted from the transcribe call on macOS, not just passed as None.
+            if config.VAD_FILTER:
+                transcribe_kwargs["vad_parameters"] = config.VAD_PARAMETERS
+
+            # Transcribe directly from audio/video path
             segments_generator, info = self.model.transcribe(
                 audio_path,
-                language=config.LANGUAGE,
-                beam_size=config.BEAM_SIZE,
-                temperature=config.TEMPERATURE,
-                initial_prompt=config.INITIAL_PROMPT,
-                vad_filter=config.VAD_FILTER,
-                vad_parameters=config.VAD_PARAMETERS if config.VAD_FILTER else None,
-                word_timestamps=False,
+                **transcribe_kwargs
             )
             
+            duration = info.duration
+            print(f"\nDetected language: {info.language}")
+            print(f"Duration: {duration:.2f} seconds")
             print(f"\nProcessing segments...")
             
             # Process segments

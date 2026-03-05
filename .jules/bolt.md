@@ -1,0 +1,3 @@
+## 2024-05-15 - faster-whisper native video processing
+**Learning:** `faster-whisper` uses internal FFmpeg bindings which can process video files directly. Explicit audio extraction to disk before passing to `transcribe()` is an unnecessary I/O bottleneck. Additionally, `transcribe()` returns an `info` object containing the media's duration, eliminating the need to parse headers with the `wave` module.
+**Action:** Always check if underlying libraries (like `faster-whisper`) support direct processing of rich media formats before building custom pre-processing pipelines that involve writing temp files to disk.
