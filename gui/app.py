@@ -109,6 +109,18 @@ class SubtitleGeneratorApp(ctk.CTk):
         )
         self.cancel_btn.pack(side="left", padx=10)
         
+        self.open_btn = ctk.CTkButton(
+            button_frame,
+            text="Open Location",
+            width=150,
+            height=45,
+            corner_radius=10,
+            font=("SF Pro", 16, "bold"),
+            fg_color=("green", "darkgreen"),
+            hover_color=("darkgreen", "green"),
+        )
+        # Not packed initially
+
         # Hardware info
         from engine import detect_hardware
         hw_info = detect_hardware()
@@ -149,6 +161,15 @@ class SubtitleGeneratorApp(ctk.CTk):
         # Reset progress
         self.progress_panel.reset()
         
+        # Hide open button if it was shown
+        self.start_btn.pack_forget()
+        self.cancel_btn.pack_forget()
+        self.open_btn.pack_forget()
+
+        # Repack standard buttons
+        self.start_btn.pack(side="left", padx=10)
+        self.cancel_btn.pack(side="left", padx=10)
+
         # Start processing in background thread
         thread = threading.Thread(target=self._process_video, daemon=True)
         thread.start()
@@ -176,24 +197,19 @@ class SubtitleGeneratorApp(ctk.CTk):
             # Complete
             self._update_progress(1.0, f"✓ Subtitles saved to: {Path(output_path).name}")
             
-            # Show success message
-            self.after(0, lambda: messagebox.showinfo(
-                "Success",
-                f"Subtitles generated successfully!\n\nSaved to:\n{output_path}"
-            ))
+            # Show success via finish processing instead of blocking dialog
+            self.after(0, lambda: self._finish_processing(success=True, output_path=output_path))
             
         except Exception as e:
             error_msg = str(e)
             self._update_progress(0.0, f"✗ Error: {error_msg}")
             self.after(0, lambda: messagebox.showerror("Error", error_msg))
+            self.after(0, lambda: self._finish_processing(success=False))
             
         finally:
             # Cleanup
             if audio_file:
                 cleanup_temp_audio(audio_file)
-            
-            # Re-enable controls
-            self.after(0, self._finish_processing)
     
     def _cancel_processing(self) -> None:
         """
@@ -201,16 +217,37 @@ class SubtitleGeneratorApp(ctk.CTk):
         """
         # Note: Proper cancellation would require threading.Event
         # For now, just reset the UI
-        self._finish_processing()
+        self._finish_processing(success=False)
     
-    def _finish_processing(self) -> None:
+    def _finish_processing(self, success: bool = False, output_path: Optional[str] = None) -> None:
         """
         Finish processing and reset UI state.
+
+        Args:
+            success: Whether generation completed successfully
+            output_path: Path to the generated subtitle file
         """
         self.processing = False
         self.start_btn.configure(state="normal")
         self.cancel_btn.configure(state="disabled")
         self.drop_zone.browse_btn.configure(state="normal")
+
+        if success and output_path:
+            from gui.utils import open_file_explorer
+
+            # Set the command for the open button
+            self.open_btn.configure(
+                command=lambda: open_file_explorer(output_path)
+            )
+
+            # Pack the button
+            self.start_btn.pack_forget()
+            self.cancel_btn.pack_forget()
+            self.open_btn.pack_forget()
+
+            self.start_btn.pack(side="left", padx=10)
+            self.cancel_btn.pack(side="left", padx=10)
+            self.open_btn.pack(side="left", padx=10)
     
     def _on_transcription_progress(self, progress: float, message: str) -> None:
         """

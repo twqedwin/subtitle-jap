@@ -1,0 +1,3 @@
+## 2024-03-06 - Replacing Blocking Dialogs with Inline Actions
+**Learning:** `tkinter.messagebox` dialogs freeze the entire application UI thread until dismissed, which provides a jarring and disruptive user experience upon task completion.
+**Action:** Replace blocking success dialogs with inline, actionable UI updates (like an 'Open Location' button) that appear dynamically without halting the user flow. Always use `pack_forget()` in sequence when changing visibility of widgets packed with `side='left'` to maintain correct visual order.
