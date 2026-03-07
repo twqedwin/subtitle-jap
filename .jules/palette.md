@@ -1,0 +1,3 @@
+## 2024-05-28 - Dynamic Button States and Keyboard Accessibility
+**Learning:** A static disabled primary button (e.g., "Generate Subtitles" before a file is selected) causes confusion because users aren't immediately sure *why* it's disabled. Additionally, desktop applications are expected to support basic keyboard navigation, such as pressing Enter to trigger the primary action.
+**Action:** Always provide context for disabled buttons by dynamically changing the text to explain the missing requirement (e.g., "Select a video first"). Also, ensure the primary action of a form or application view can be triggered via standard keyboard shortcuts like `<Return>`, provided the necessary state conditions are met.
