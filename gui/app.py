@@ -85,7 +85,7 @@ class SubtitleGeneratorApp(ctk.CTk):
         
         self.start_btn = ctk.CTkButton(
             button_frame,
-            text="Generate Subtitles",
+            text="Select a video first",
             command=self._start_processing,
             width=200,
             height=45,
@@ -121,6 +121,9 @@ class SubtitleGeneratorApp(ctk.CTk):
             text_color=("gray50", "gray60")
         )
         device_label.pack(pady=(10, 20))
+
+        # Keyboard shortcuts
+        self.bind('<Return>', lambda e: self._start_processing() if self.current_file and not self.processing else None)
     
     def _on_file_selected(self, file_path: str) -> None:
         """
@@ -130,7 +133,7 @@ class SubtitleGeneratorApp(ctk.CTk):
             file_path: Path to selected file
         """
         self.current_file = file_path
-        self.start_btn.configure(state="normal")
+        self.start_btn.configure(state="normal", text="Generate Subtitles")
     
     def _start_processing(self) -> None:
         """
@@ -142,7 +145,7 @@ class SubtitleGeneratorApp(ctk.CTk):
         
         # Disable controls
         self.processing = True
-        self.start_btn.configure(state="disabled")
+        self.start_btn.configure(state="disabled", text="Generating...")
         self.cancel_btn.configure(state="normal")
         self.drop_zone.browse_btn.configure(state="disabled")
         
@@ -208,7 +211,7 @@ class SubtitleGeneratorApp(ctk.CTk):
         Finish processing and reset UI state.
         """
         self.processing = False
-        self.start_btn.configure(state="normal")
+        self.start_btn.configure(state="normal", text="Generate Subtitles")
         self.cancel_btn.configure(state="disabled")
         self.drop_zone.browse_btn.configure(state="normal")
     
